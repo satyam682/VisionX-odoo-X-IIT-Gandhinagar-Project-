@@ -318,6 +318,7 @@ This project is developed for the Odoo x IIT Gandhinagar Hackathon. All rights r
 
 ---
 
-**Built with ❤️ for the Odoo x IIT Gandhinagar Hackathon**
+
 
 *ExpenseFlow - Streamline. Approve. Reimburse.*
+
