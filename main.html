@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpenseFlow - Integrated Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4f46e5',
+                        danger: '#ef4444',
+                        success: '#22c55e',
+                        warning: '#f59e0b'
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100 font-sans antialiased">
+    <!-- Global Data Storage -->
+    <script>
+        // Global data storage to simulate backend
+        if (!localStorage.getItem('expenseFlowData')) {
+            const initialData = {
+                employees: [
+                    {
+                        id: 'EMP_001',
+                        name: 'Amit Shah',
+                        email: 'amit@techcorp.com',
+                        department: 'Sales',
+                        manager: 'Suresh Kumar',
+                        budget: 50000,
+                        usedBudget: 0
+                    }
+                ],
+                managers: [
+                    {
+                        id: 'MGR_001',
+                        name: 'Suresh Kumar',
+                        email: 'suresh@techcorp.com',
+                        department: 'Sales'
+                    }
+                ],
+                expenses: [],
+                notifications: []
+            };
+            localStorage.setItem('expenseFlowData', JSON.stringify(initialData));
+        }
+    </script>
+
+    <!-- Manager Dashboard -->
+    <div id="manager-dashboard" class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar"
+            class="bg-white w-64 h-full flex flex-col shadow-lg transition-all duration-300 ease-in-out md:w-64 fixed md:relative z-20 transform -translate-x-full md:translate-x-0">
+            <div class="flex items-center justify-between p-4 border-b">
+                <div class="flex items-center">
+                    <i class="fas fa-money-check-alt mr-2 text-primary"></i>
+                    <span class="font-bold text-xl">ExpenseFlow</span>
+                </div>
+                <button id="toggle-sidebar" class="text-gray-500 hover:text-gray-700 md:hidden">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-4 border-b">
+                <div class="flex items-center">
+                    <div
+                        class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-white font-bold">
+                        SK
+                    </div>
+                    <div class="ml-3">
+                        <p class="font-semibold">Suresh Kumar</p>
+                        <p class="text-sm text-gray-500">Manager - Sales</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="flex-1 p-4">
+                <ul>
+                    <li class="mb-2">
+                        <a href="#" data-tab="pending"
+                            class="sidebar-link flex items-center p-2 rounded-lg bg-primary text-white">
+                            <i class="fas fa-clock mr-3"></i> Pending Approvals
+                            <span id="pending-badge"
+                                class="ml-auto bg-danger text-white text-xs px-2 py-1 rounded-full animate-pulse">0</span>
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#" data-tab="team"
+                            class="sidebar-link flex items-center p-2 rounded-lg hover:bg-gray-100">
+                            <i class="fas fa-users mr-3"></i> Team Expenses
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#" data-tab="approved"
+                            class="sidebar-link flex items-center p-2 rounded-lg hover:bg-gray-100">
+                            <i class="fas fa-check-circle mr-3"></i> Approved History
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#" data-tab="rejected"
+                            class="sidebar-link flex items-center p-2 rounded-lg hover:bg-gray-100">
+                            <i class="fas fa-times-circle mr-3"></i> Rejected History
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#" data-tab="analytics"
+                            class="sidebar-link flex items-center p-2 rounded-lg hover:bg-gray-100">
+                            <i class="fas fa-chart-bar mr-3"></i> Team Analytics
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <div class="p-4 border-t">
+                <ul>
+                    <li class="mb-2">
+                        <a href="#" class="flex items-center p-2 rounded-lg hover:bg-gray-100">
+                            <i class="fas fa-bell mr-3"></i> Notifications
+                            <span id="notifications-badge"
+                                class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">0</span>
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#" class="flex items-center p-2 rounded-lg hover:bg-gray-100">
+                            <i class="fas fa-question-circle mr-3"></i> Help & Support
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center p-2 rounded-lg hover:bg-gray-100">
+                            <i class="fas fa-sign-out-alt mr-3"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </aside>
+
+        <!-- Mobile Menu Toggle -->
+        <button id="mobile-menu-toggle" class="md:hidden fixed top-4 left-4 z-30 text-gray-500">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto p-6 md:ml-0">
+            <!-- Pending Approvals Tab -->
+            <div id="pending-tab" class="tab-content">
+                <header class="mb-6">
+                    <h1 class="text-2xl font-bold flex items-center">
+                        <span class="w-3 h-3 bg-danger rounded-full animate-pulse mr-2"></span>
+                        Pending Approvals
+                    </h1>
+                    <p id="pending-count" class="text-gray-600">0 expenses awaiting your approval</p>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <button class="px-3 py-1 border rounded bg-primary text-white">All</button>
+                        <button class="px-3 py-1 border rounded">High Priority (>₹50K)</button>
+                        <button class="px-3 py-1 border rounded">Urgent (>3 days old)</button>
+                    </div>
+                </header>
+
+                <!-- Urgent Alert -->
+                <div id="urgent-alert"
+                    class="bg-warning bg-opacity-10 border border-warning p-4 rounded-lg mb-6 hidden">
+                    <p class="font-semibold flex items-center">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        <span id="urgent-count">0</span> expenses are waiting for more than 3 days! Please review
+                        immediately.
+                    </p>
+                    <button class="text-primary mt-2">Show Urgent Items</button>
+                </div>
+
+                <!-- Approval Cards -->
+                <div id="approval-cards" class="grid grid-cols-1 gap-6">
+                    <!-- Cards will be populated by JS -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="text-center py-12 hidden">
+                    <div class="text-6xl mb-4">🎉</div>
+                    <h3 class="text-xl font-semibold mb-2">All Caught Up!</h3>
+                    <p class="text-gray-600 mb-4">You have no pending approvals. Great job staying on top of things!</p>
+                    <button class="text-primary">View Team Expenses →</button>
+                </div>
+            </div>
+
+            <!-- Team Expenses Tab -->
+            <div id="team-tab" class="tab-content hidden">
+                <header class="mb-6">
+                    <h1 class="text-2xl font-bold">Team Expenses</h1>
+                    <p class="text-gray-600">View all expenses from your team members</p>
+                    <select class="mt-2 p-2 border rounded">
+                        <option>This Month</option>
+                        <option>Last Month</option>
+                        <option>Last 3 Months</option>
+                    </select>
+                </header>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-semibold">Total Team Expenses</h3>
+                        <p class="text-2xl font-bold">₹0</p>
+                        <p class="text-sm text-gray-600">↑ 0% vs last</p>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-semibold">Pending Your Approval</h3>
+                        <p class="text-2xl font-bold">0 expenses</p>
+                        <button class="text-primary text-sm">Review →</button>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-semibold">Approved This Month</h3>
+                        <p class="text-2xl font-bold">₹0</p>
+                        <p class="text-sm text-gray-600">0% rate</p>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-semibold">Team Average Per Employee</h3>
+                        <p class="text-2xl font-bold">₹0</p>
+                        <p class="text-sm text-gray-600">0 employees</p>
+                    </div>
+                </div>
+
+                <!-- Team Member Tabs -->
+                <div class="border-b mb-4">
+                    <div class="flex gap-2">
+                        <button class="px-3 py-2 border-b-2 border-primary">All(0)</button>
+                        <!-- Will be populated -->
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="mb-6 flex flex-wrap gap-2">
+                    <select class="p-2 border rounded">
+                        <option>Status: All</option>
+                        <option>Pending</option>
+                        <option>Approved</option>
+                        <option>Rejected</option>
+                    </select>
+                    <select class="p-2 border rounded">
+                        <option>Amount: All</option>
+                        <option>Under ₹5K</option>
+                        <option>₹5K-₹25K</option>
+                        <option>Over ₹25K</option>
+                    </select>
+                    <select class="p-2 border rounded">
+                        <option>Category: All</option>
+                    </select>
+                </div>
+
+                <!-- Expenses Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full bg-white shadow rounded-lg">
+                        <thead class="bg-gray-200">
+                            <tr>
+                                <th class="p-2 text-left">Employee</th>
+                                <th class="p-2 text-left">ID</th>
+                                <th class="p-2 text-left">Amount</th>
+                                <th class="p-2 text-left">Category</th>
+                                <th class="p-2 text-left">Description</th>
+                                <th class="p-2 text-left">Date</th>
+                                <th class="p-2 text-left">Status</th>
+                                <th class="p-2 text-left">Stage</th>
+                                <th class="p-2 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="team-expenses-table">
+                            <!-- Will be populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Approved History Tab -->
+            <div id="approved-tab" class="tab-content hidden">
+                <header class="mb-6">
+                    <h1 class="text-2xl font-bold">Approved Expenses History</h1>
+                    <p class="text-gray-600">Track all expenses you've approved</p>
+                    <select class="mt-2 p-2 border rounded">
+                        <option>All Time</option>
+                        <option>Last 30 days</option>
+                        <option>Last 3 months</option>
+                    </select>
+                </header>
+
+                <!-- Summary Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-semibold">Total Approved</h3>
+                        <p class="text-2xl font-bold">₹0</p>
+                        <p class="text-sm text-gray-600">0 expenses</p>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-semibold">Average Amount</h3>
+                        <p class="text-2xl font-bold">₹0</p>
+                        <p class="text-sm text-gray-600">Per expense</p>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-semibold">Approval Rate</h3>
+                        <p class="text-2xl font-bold">0%</p>
+                        <p class="text-sm text-gray-600">(0/0)</p>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="bg-white p-4 rounded shadow mb-6">
+                    <h3 class="font-semibold mb-4">Approved Expenses by Month</h3>
+                    <canvas id="approved-chart"></canvas>
+                </div>
+
+                <!-- Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full bg-white shadow rounded-lg">
+                        <thead class="bg-gray-200">
+                            <tr>
+                                <th class="p-2 text-left">ID</th>
+                                <th class="p-2 text-left">Employee</th>
+                                <th class="p-2 text-left">Amount</th>
+                                <th class="p-2 text-left">Category</th>
+                                <th class="p-2 text-left">Submitted</th>
+                                <th class="p-2 text-left">Approved</th>
+                                <th class="p-2 text-left">Time</th>
+                                <th class="p-2 text-left">Comment</th>
+                                <th class="p-2 text-left">Status</th>
+                                <th class="p-2 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="approved-table">
+                            <!-- Will be populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Rejected History Tab -->
+            <div id="rejected-tab" class="tab-content hidden">
+                <header class="mb-6">
+                    <h1 class="text-2xl font-bold">Rejected Expenses</h1>
+                    <p class="text-gray-600">Review expenses you've rejected and reasons</p>
+                    <select class="mt-2 p-2 border rounded">
+                        <option>All Time</option>
+                    </select>
+                </header>
+
+                <!-- Overview -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-semibold">Total Rejected</h3>
+                        <p class="text-2xl font-bold">0 expenses</p>
+                        <p class="text-sm text-gray-600">₹0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-semibold">Rejection Rate</h3>
+                        <p class="text-2xl font-bold">0%</p>
+                        <p class="text-sm text-gray-600">(0/0 total)</p>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-semibold">Most Common Reason</h3>
+                        <p class="text-xl font-bold">-</p>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="bg-white p-4 rounded shadow mb-6">
+                    <h3 class="font-semibold mb-4">Why Expenses Were Rejected</h3>
+                    <canvas id="rejection-chart"></canvas>
+                </div>
+
+                <!-- Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full bg-white shadow rounded-lg">
+                        <thead class="bg-gray-200">
+                            <tr>
+                                <th class="p-2 text-left">ID</th>
+                                <th class="p-2 text-left">Employee</th>
+                                <th class="p-2 text-left">Amount</th>
+                                <th class="p-2 text-left">Category</th>
+                                <th class="p-2 text-left">Submitted</th>
+                                <th class="p-2 text-left">Rejected</th>
+                                <th class="p-2 text-left">Reason</th>
+                                <th class="p-2 text-left">Comment</th>
+                                <th class="p-2 text-left">Status</th>
+                                <th class="p-2 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rejected-table">
+                            <!-- Will be populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Team Analytics Tab -->
+            <div id="analytics-tab" class="tab-content hidden">
+                <header class="mb-6">
+                    <h1 class="text-2xl font-bold">Team Analytics & Insights</h1>
+                    <p class="text-gray-600">Understand your team's spending patterns</p>
+                    <select class="mt-2 p-2 border rounded">
+                        <option>This Month</option>
+                    </select>
+                </header>
+
+                <!-- Key Metrics -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-semibold">Team Total</h3>
+                        <p class="text-2xl font-bold">₹0</p>
+                        <p class="text-sm text-gray-600">0 employees</p>
+                        <p class="text-sm text-gray-600">↑ 0% vs last</p>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-semibold">Avg Per Employee</h3>
+                        <p class="text-2xl font-bold">₹0</p>
+                        <p class="text-sm text-gray-600">Per month</p>
+                        <p class="text-sm text-gray-600">↓ 0% vs last</p>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-semibold">Your Approval Time</h3>
+                        <p class="text-2xl font-bold">0 hrs</p>
+                        <p class="text-sm text-gray-600">0 hrs faster</p>
+                        <p class="text-sm text-gray-600">Company avg: 0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-semibold">Team Compliance</h3>
+                        <p class="text-2xl font-bold">0%</p>
+                        <p class="text-sm text-gray-600">Within policy</p>
+                        <p class="text-sm text-gray-600">↑ 0% vs last</p>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-semibold mb-4">Team Spending Over Time</h3>
+                        <canvas id="spending-trend-chart"></canvas>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-semibold mb-4">Spending by Team Member</h3>
+                        <canvas id="member-spending-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded shadow mb-6">
+                    <h3 class="font-semibold mb-4">Team Spending by Category</h3>
+                    <canvas id="category-breakdown-chart"></canvas>
+                </div>
+
+                <!-- Top Spenders -->
+                <div class="bg-white p-4 rounded shadow">
+                    <h3 class="font-semibold mb-4">Top Spenders</h3>
+                    <div id="top-spenders" class="space-y-4">
+                        <!-- Will be populated -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Employee Dashboard -->
+    <div id="employee-dashboard" class="hidden">
+        <!-- Global Header -->
+        <header class="bg-white shadow-md fixed w-full top-0 z-30">
+            <div class="px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center">
+                    <button id="employee-mobile-menu-toggle" class="md:hidden mr-4">
+                        <i class="fas fa-bars text-gray-600"></i>
+                    </button>
+                    <div class="flex items-center">
+                        <i class="fas fa-money-check-alt mr-2 text-primary"></i>
+                        <span class="font-bold text-xl">ExpenseFlow</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <input type="text" placeholder="Search expenses..." id="global-search"
+                        class="p-2 border rounded hidden">
+                    <div class="relative">
+                        <button id="notification-btn" class="relative">
+                            <i class="fas fa-bell text-gray-600"></i>
+                            <span id="employee-notif-badge"
+                                class="absolute -top-1 -right-1 bg-danger text-white text-xs rounded-full px-1">0</span>
+                        </button>
+                        <div id="employee-notif-dropdown"
+                            class="hidden absolute right-0 mt-2 w-80 bg-white shadow-lg rounded-lg z-50">
+                            <!-- Notifications content -->
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <button id="employee-profile-btn" class="flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">AS</div>
+                            <span>Amit Shah</span>
+                        </button>
+                        <div id="employee-profile-dropdown"
+                            class="hidden absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg z-50">
+                            <!-- Profile content -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex h-screen pt-16 overflow-hidden">
+            <!-- Sidebar -->
+            <aside id="employee-sidebar"
+                class="bg-white w-64 h-full flex flex-col shadow-lg transition-all duration-300 ease-in-out md:w-64 fixed md:relative z-20 transform -translate-x-full md:translate-x-0">
+                <div class="p-4 border-b">
+                    <div class="flex items-center">
+                        <div
+                            class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-white font-bold">
+                            AS
+                        </div>
+                        <div class="ml-3">
+                            <p class="font-semibold">Amit Shah</p>
+                            <p class="text-sm text-gray-500">Employee - Sales</p>
+                            <p class="text-sm text-gray-500">Manager: Suresh Kumar</p>
+                        </div>
+                    </div>
+                </div>
+                <nav class="flex-1 p-4">
+                    <ul>
+                        <li class="mb-2">
+                            <a href="#" data-tab="submit"
+                                class="sidebar-link flex items-center p-2 rounded-lg bg-primary text-white">
+                                <i class="fas fa-plus mr-3"></i> Submit Expense
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" data-tab="expenses"
+                                class="sidebar-link flex items-center p-2 rounded-lg hover:bg-gray-100">
+                                <i class="fas fa-list mr-3"></i> My Expenses
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" data-tab="pending"
+                                class="sidebar-link flex items-center p-2 rounded-lg hover:bg-gray-100">
+                                <i class="fas fa-clock mr-3"></i> Pending Status
+                                <span id="employee-pending-badge"
+                                    class="ml-auto bg-warning text-white text-xs px-2 py-1 rounded-full">0</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" data-tab="history"
+                                class="sidebar-link flex items-center p-2 rounded-lg hover:bg-gray-100">
+                                <i class="fas fa-history mr-3"></i> My History
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                <div class="p-4 border-t">
+                    <ul>
+                        <li class="mb-2">
+                            <a href="#" class="flex items-center p-2 rounded-lg hover:bg-gray-100">
+                                <i class="fas fa-bell mr-3"></i> Notifications
+                                <span id="employee-sidebar-notif-badge"
+                                    class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">0</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="flex items-center p-2 rounded-lg hover:bg-gray-100">
+                                <i class="fas fa-question-circle mr-3"></i> Help & Support
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="flex items-center p-2 rounded-lg hover:bg-gray-100">
+                                <i class="fas fa-user mr-3"></i> My Profile
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="flex items-center p-2 rounded-lg hover:bg-gray-100">
+                                <i class="fas fa-sign-out-alt mr-3"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="flex-1 overflow-y-auto p-6 md:ml-0 ml-0">
+                <!-- Submit Expense Tab -->
+                <div id="submit-tab" class="tab-content">
+                    <header class="mb-6">
+                        <h1 class="text-2xl font-bold">Submit New Expense</h1>
+                        <p class="text-gray-600">Quick and easy expense submission with OCR support</p>
+                        <div class="mt-4">
+                            <p class="text-sm text-gray-600">Your monthly limit: ₹50,000 | Used: <span
+                                    id="budget-used">₹0</span> (0%) | Remaining: ₹50,000</p>
+                            <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                <div id="budget-bar" class="bg-success h-2 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <!-- Submission Methods -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-white p-6 rounded-lg shadow cursor-pointer hover:shadow-lg transition-shadow"
+                            onclick="showOcrMethod()">
+                            <i class="fas fa-camera text-4xl mb-4 text-primary"></i>
+                            <h3 class="font-bold text-lg">📷 SCAN RECEIPT</h3>
+                            <p class="text-gray-600">AI-powered OCR</p>
+                            <p class="text-gray-600">Auto-fills all fields</p>
+                            <button class="bg-primary text-white px-4 py-2 rounded mt-4">Scan Receipt</button>
+                            <p class="text-sm text-success mt-2">⚡ Recommended</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow cursor-pointer hover:shadow-lg transition-shadow"
+                            onclick="showManualMethod()">
+                            <i class="fas fa-keyboard text-4xl mb-4 text-primary"></i>
+                            <h3 class="font-bold text-lg">📝 MANUAL ENTRY</h3>
+                            <p class="text-gray-600">Fill form manually</p>
+                            <p class="text-gray-600">Upload receipt later</p>
+                            <button class="bg-primary text-white px-4 py-2 rounded mt-4">Fill Form</button>
+                            <p class="text-sm text-gray-600 mt-2">🕐 Takes 2 minutes</p>
+                        </div>
+                    </div>
+
+                    <!-- OCR Method -->
+                    <div id="ocr-method" class="hidden">
+                        <div class="bg-white p-6 rounded-lg shadow mb-6">
+                            <h3 class="font-bold mb-4">STEP 1: UPLOAD/SCAN RECEIPT</h3>
+                            <div class="border-2 border-dashed border-gray-300 p-8 text-center rounded-lg">
+                                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                                <p class="text-gray-600 mb-2">Drag & drop here or</p>
+                                <input type="file" id="receipt-upload" accept="image/*,.pdf" class="hidden">
+                                <button onclick="document.getElementById('receipt-upload').click()"
+                                    class="bg-primary text-white px-4 py-2 rounded">Choose File</button>
+                                <button id="use-camera" class="bg-primary text-white px-4 py-2 rounded ml-2">Use
+                                    Camera</button>
+                                <p class="text-sm text-gray-500 mt-2">Supported: JPG, PNG, PDF | Max size: 10MB</p>
+                            </div>
+                            <div id="receipt-preview" class="hidden mt-4">
+                                <img id="preview-img" class="max-w-md">
+                            </div>
+                        </div>
+                        <div id="processing-step" class="hidden bg-white p-6 rounded-lg shadow">
+                            <h3 class="font-bold mb-4">STEP 2: AI PROCESSING</h3>
+                            <div class="text-center">
+                                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4">
+                                </div>
+                                <p>Processing Receipt...</p>
+                                <p class="text-sm text-gray-600">This usually takes 5-10 seconds</p>
+                            </div>
+                        </div>
+                        <div id="verify-step" class="hidden bg-white p-6 rounded-lg shadow">
+                            <h3 class="font-bold mb-4">STEP 3: VERIFY AUTO-FILLED DATA</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <p class="font-semibold mb-2">Receipt Preview</p>
+                                    <img id="verify-img" class="max-w-full rounded">
+                                    <div class="flex gap-2 mt-2">
+                                        <button class="text-sm text-primary">Zoom +</button>
+                                        <button class="text-sm text-primary">Zoom -</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-semibold mb-2">Extracted Data</p>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Amount</label>
+                                            <input type="number" id="auto-amount" class="w-full p-2 border rounded"
+                                                value="5000">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Merchant</label>
+                                            <input type="text" id="auto-merchant" class="w-full p-2 border rounded"
+                                                value="Uber">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Date</label>
+                                            <input type="date" id="auto-date" class="w-full p-2 border rounded"
+                                                value="2025-01-15">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Category</label>
+                                            <select id="auto-category" class="w-full p-2 border rounded">
+                                                <option>Travel</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium mb-1">Description</label>
+                                            <textarea id="auto-desc"
+                                                class="w-full p-2 border rounded">Cab fare from office to client meeting</textarea>
+                                        </div>
+                                    </div>
+                                    <p class="mt-4 text-sm text-success">Confidence Score: 95% (High)</p>
+                                </div>
+                            </div>
+                            <button onclick="submitExpenseFromOcr()"
+                                class="bg-primary text-white px-6 py-2 rounded mt-4">Continue to Submit</button>
+                        </div>
+                    </div>
+
+                    <!-- Manual Method -->
+                    <div id="manual-method" class="hidden">
+                        <form id="expense-form" class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="font-bold mb-4">EXPENSE DETAILS</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Amount *</label>
+                                    <input type="number" id="manual-amount" class="w-full p-2 border rounded" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Currency *</label>
+                                    <select id="manual-currency" class="w-full p-2 border rounded">
+                                        <option>INR - Indian Rupee</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <label class="block text-sm font-medium mb-1">Category *</label>
+                                <select id="manual-category" class="w-full p-2 border rounded" required>
+                                    <option>Travel</option>
+                                    <option>Food & Beverages</option>
+                                    <option>Accommodation</option>
+                                    <option>Transportation</option>
+                                    <option>Office Supplies</option>
+                                    <option>Client Entertainment</option>
+                                    <option>Training & Development</option>
+                                    <option>Other</option>
+                                </select>
+                            </div>
+                            <div class="mt-4">
+                                <label class="block text-sm font-medium mb-1">Expense Date *</label>
+                                <input type="date" id="manual-date" class="w-full p-2 border rounded" required>
+                            </div>
+                            <div class="mt-4">
+                                <label class="block text-sm font-medium mb-1">Description *</label>
+                                <textarea id="manual-desc" class="w-full p-2 border rounded" rows="3"
+                                    required></textarea>
+                            </div>
+                            <div class="mt-4">
+                                <label class="block text-sm font-medium mb-1">Receipt Upload</label>
+                                <div class="border-2 border-dashed border-gray-300 p-8 text-center rounded-lg">
+                                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                                    <input type="file" id="manual-receipt" accept="image/*,.pdf" class="hidden">
+                                    <button onclick="document.getElementById('manual-receipt').click()"
+                                        class="bg-primary text-white px-4 py-2 rounded">Browse Files</button>
+                                    <p class="text-sm text-gray-500 mt-2">Supported: JPG, PNG, PDF | Max size: 10MB</p>
+                                </div>
+                                <div id="manual-preview" class="hidden mt-4">
+                                    <img id="manual-preview-img" class="max-w-md">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Project/Client Name (Optional)</label>
+                                    <input type="text" id="manual-project" class="w-full p-2 border rounded">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Location (Optional)</label>
+                                    <input type="text" id="manual-location" class="w-full p-2 border rounded">
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <label class="block text-sm font-medium mb-1">Tags (Optional)</label>
+                                <input type="text" id="manual-tags" class="w-full p-2 border rounded"
+                                    placeholder="urgent, client-meeting, mumbai">
+                            </div>
+                            <div class="mt-4">
+                                <p class="font-semibold">APPROVAL FLOW PREVIEW</p>
+                                <p>Your expense will go through:</p>
+                                <ul class="list-disc ml-4 text-sm">
+                                    <li>1. Suresh Kumar (Your Manager)</li>
+                                    <li>2. Finance Team (60% approval needed)</li>
+                                    <li>3. CFO Final Approval</li>
+                                </ul>
+                                <p class="text-sm text-gray-600 mt-2">Estimated approval time: 2-3 days</p>
+                            </div>
+                            <div class="flex items-center mt-4">
+                                <input type="checkbox" id="save-draft" class="mr-2">
+                                <label for="save-draft" class="text-sm">Save as draft (Submit later)</label>
+                            </div>
+                            <div class="flex justify-end gap-4 mt-6">
+                                <button type="button" onclick="cancelSubmit()"
+                                    class="px-4 py-2 border rounded">Cancel</button>
+                                <button type="submit" class="bg-primary text-white px-6 py-2 rounded">SUBMIT EXPENSE
+                                    →</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Success Modal -->
+                    <div id="success-modal"
+                        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+                        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md text-center">
+                            <h3 class="text-xl font-bold mb-4 text-success">✅ EXPENSE SUBMITTED!</h3>
+                            <div class="bg-gray-100 p-4 rounded mb-4">
+                                <p class="font-semibold">Expense ID: <span id="success-id"></span></p>
+                                <p>Amount: <span id="success-amount"></span></p>
+                                <p>Status: Pending Manager Approval</p>
+                            </div>
+                            <p class="text-gray-600 mb-4">Notification sent to: Suresh Kumar</p>
+                            <p class="text-gray-600 mb-4">Expected approval: 1-2 days</p>
+                            <div class="flex justify-center gap-4">
+                                <button onclick="trackStatus()" class="text-primary">Track Status</button>
+                                <button onclick="submitAnother()" class="text-primary">Submit Another</button>
+                                <button onclick="viewAll()" class="text-primary">View All</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My Expenses Tab -->
+                <div id="expenses-tab" class="tab-content hidden">
+                    <header class="mb-6">
+                        <h1 class="text-2xl font-bold">My Expenses</h1>
+                        <p class="text-gray-600">Track all your submitted expenses</p>
+                        <div class="flex space-x-4 mb-4">
+                            <span class="px-3 py-1 bg-gray-200 rounded">This Month: ₹0</span>
+                            <span class="px-3 py-1 bg-yellow-200 rounded">Pending: 0 (₹0)</span>
+                            <span class="px-3 py-1 bg-green-200 rounded">Approved: 0 (₹0)</span>
+                            <span class="px-3 py-1 bg-red-200 rounded">Rejected: 0 (₹0)</span>
+                        </div>
+                    </header>
+
+                    <!-- Filter Tabs -->
+                    <div class="flex border-b mb-6">
+                        <button class="px-4 py-2 border-b-2 border-primary">All(0)</button>
+                        <button class="px-4 py-2">Pending(0)</button>
+                        <button class="px-4 py-2">Approved(0)</button>
+                        <button class="px-4 py-2">Rejected(0)</button>
+                        <button class="px-4 py-2">Draft(0)</button>
+                    </div>
+
+                    <!-- Expenses List -->
+                    <div id="expenses-list" class="space-y-6">
+                        <!-- Cards will be populated -->
+                    </div>
+                </div>
+
+                <!-- Pending Status Tab -->
+                <div id="pending-tab" class="tab-content hidden">
+                    <header class="mb-6">
+                        <h1 class="text-2xl font-bold">Pending Expenses - Live Status</h1>
+                        <p class="text-gray-600">Track your expenses in real-time</p>
+                        <p class="text-sm text-gray-500">🔄 Live (updates every 30 sec) <button
+                                onclick="refreshPending()" class="ml-2 text-primary">Refresh</button></p>
+                    </header>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2">
+                            <div id="pending-list" class="space-y-6">
+                                <!-- Pending cards -->
+                            </div>
+                        </div>
+                        <div class="space-y-6">
+                            <!-- Activity Feed, Notifications, Tips -->
+                            <div class="bg-white p-4 rounded-lg shadow">
+                                <h3 class="font-bold mb-4">🔔 RECENT ACTIVITY</h3>
+                                <div id="activity-feed" class="space-y-2 text-sm">
+                                    <!-- Activity items -->
+                                </div>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg shadow">
+                                <h3 class="font-bold mb-4">📬 NOTIFICATIONS</h3>
+                                <div id="notif-center" class="space-y-2 text-sm">
+                                    <!-- Notifications -->
+                                </div>
+                                <button class="text-primary text-sm">Mark All as Read</button>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg shadow">
+                                <h3 class="font-bold mb-4">💡 TIPS FOR FASTER APPROVAL</h3>
+                                <ul class="list-disc ml-4 text-sm space-y-1">
+                                    <li>Best time to submit: Mon-Wed AM</li>
+                                    <li>Peak approval hours: 10 AM - 12 PM</li>
+                                    <li>Always include clear receipts</li>
+                                    <li>Add detailed descriptions</li>
+                                    <li>Respond quickly to info requests</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My History Tab -->
+                <div id="history-tab" class="tab-content hidden">
+                    <header class="mb-6">
+                        <h1 class="text-2xl font-bold">My Expense History & Insights</h1>
+                        <p class="text-gray-600">Analyze your spending patterns</p>
+                        <select class="p-2 border rounded">
+                            <option>Last 6 Months</option>
+                        </select>
+                    </header>
+
+                    <!-- Key Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-white p-4 rounded shadow">
+                            <h3 class="font-semibold">Total Expenses</h3>
+                            <p class="text-2xl font-bold">₹0</p>
+                            <p class="text-sm text-gray-600">0 expenses</p>
+                            <p class="text-sm text-success">↑ 0% vs prev</p>
+                        </div>
+                        <div class="bg-white p-4 rounded shadow">
+                            <h3 class="font-semibold">Average per Expense</h3>
+                            <p class="text-2xl font-bold">₹0</p>
+                            <p class="text-sm text-gray-600">Per claim</p>
+                            <p class="text-sm text-warning">↓ 0% vs prev</p>
+                        </div>
+                        <div class="bg-white p-4 rounded shadow">
+                            <h3 class="font-semibold">Most Frequent Category</h3>
+                            <p class="text-2xl font-bold">-</p>
+                            <p class="text-sm text-gray-600">0% of total</p>
+                            <p class="text-sm text-primary">₹0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded shadow">
+                            <h3 class="font-semibold">Fastest Approval</h3>
+                            <p class="text-2xl font-bold">0 hours</p>
+                            <p class="text-sm text-gray-600">Your avg</p>
+                            <p class="text-sm text-success">vs 0 company</p>
+                        </div>
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-white p-6 rounded shadow">
+                            <h3 class="font-bold mb-4">Spending Over Time</h3>
+                            <canvas id="spending-chart"></canvas>
+                        </div>
+                        <div class="bg-white p-6 rounded shadow">
+                            <h3 class="font-bold mb-4">Category Breakdown</h3>
+                            <canvas id="category-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Comparison -->
+                    <div class="bg-white p-6 rounded shadow mb-6">
+                        <h3 class="font-bold mb-4">This Month vs Last Month</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                            <div>
+                                <p class="font-semibold">This Month</p>
+                                <p class="text-2xl font-bold">₹0</p>
+                                <p>0 expenses</p>
+                            </div>
+                            <div>
+                                <p class="font-semibold">Last Month</p>
+                                <p class="text-2xl font-bold">₹0</p>
+                                <p>0 expenses</p>
+                            </div>
+                            <div>
+                                <p class="font-semibold">Change</p>
+                                <p class="text-2xl font-bold">0% ↑</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Insights -->
+                    <div class="bg-white p-6 rounded shadow mb-6">
+                        <h3 class="font-bold mb-4">💡 PERSONALIZED INSIGHTS</h3>
+                        <ul class="space-y-2 text-sm">
+                            <li>• Your Travel expenses increased 0% compared to last month</li>
+                            <li>• You submit most expenses on Wednesdays (Best approval rate: 0%)</li>
+                            <li>• Your expenses get approved 0% faster than company average</li>
+                            <li>• Tip: Submit before 10 AM for same-day approval (based on your history)</li>
+                            <li>• Budget alert: You're using 0% of your budget with 0% of month remaining ✅</li>
+                        </ul>
+                    </div>
+
+                    <!-- Achievements -->
+                    <div class="bg-white p-6 rounded shadow">
+                        <h3 class="font-bold mb-4">🏆 YOUR ACHIEVEMENTS</h3>
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                <i class="fas fa-check-circle text-success mr-2"></i>
+                                <span>100% Receipt Compliance - All expenses have receipts</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-check-circle text-success mr-2"></i>
+                                <span>Quick Submitter - Average submission time: Same day</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-check-circle text-success mr-2"></i>
+                                <span>Budget Master - Never exceeded monthly budget</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-star text-warning mr-2"></i>
+                                <span>Fast Approvals - 0 hours avg (0% faster than company)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Quick Actions Floating Button -->
+        <button id="quick-actions" class="fixed bottom-6 right-6 bg-primary text-white p-4 rounded-full shadow-lg z-40">
+            <i class="fas fa-plus"></i>
+        </button>
+        <div id="quick-menu" class="hidden fixed bottom-20 right-6 bg-white shadow-lg rounded-lg w-48 z-40">
+            <a href="#" class="block px-4 py-2 hover:bg-gray-100">➕ Submit Expense</a>
+            <a href="#" class="block px-4 py-2 hover:bg-gray-100">📊 Check Status</a>
+            <a href="#" class="block px-4 py-2 hover:bg-gray-100">💬 Get Help</a>
+        </div>
+    </div>
+
+    <!-- Receipt Viewer Modal -->
+    <div id="receipt-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-4 rounded-lg max-w-4xl max-h-screen overflow-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Receipt</h3>
+                <button id="close-receipt" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <img id="receipt-image" src="" alt="Receipt" class="max-w-full">
+            <div class="mt-4 flex gap-2">
+                <button class="bg-primary text-white px-4 py-2 rounded">Download</button>
+                <button class="border px-4 py-2 rounded">Zoom In</button>
+                <button class="border px-4 py-2 rounded">Zoom Out</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Approval Confirmation Modal -->
+    <div id="approve-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4 text-success">Approve Expense?</h3>
+            <p class="mb-2"><strong>Expense:</strong> <span id="approve-id"></span></p>
+            <p class="mb-2"><strong>Amount:</strong> <span id="approve-amount"></span></p>
+            <p class="mb-4"><strong>Employee:</strong> <span id="approve-employee"></span></p>
+            <label class="block mb-2">Your Comment (Optional):</label>
+            <textarea id="approve-comment" class="w-full p-2 border rounded mb-4"></textarea>
+            <p class="text-sm text-gray-600 mb-4">Next Stage: This expense will move to Finance Team for review.</p>
+            <div class="flex justify-end gap-2">
+                <button id="cancel-approve" class="px-4 py-2 border rounded">Cancel</button>
+                <button id="confirm-approve" class="bg-success text-white px-4 py-2 rounded">Confirm & Approve</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Modal -->
+    <div id="reject-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4 text-danger">Reject Expense?</h3>
+            <p class="mb-2"><strong>Expense:</strong> <span id="reject-id"></span></p>
+            <p class="mb-2"><strong>Amount:</strong> <span id="reject-amount"></span></p>
+            <p class="mb-4"><strong>Employee:</strong> <span id="reject-employee"></span></p>
+            <label class="block mb-2 text-danger font-semibold">Rejection Reason (Required):</label>
+            <div class="space-y-2 mb-4">
+                <label><input type="radio" name="reject-reason" value="missing_receipt"> Missing or unclear
+                    receipt</label>
+                <label><input type="radio" name="reject-reason" value="over_budget"> Amount exceeds policy limit</label>
+                <label><input type="radio" name="reject-reason" value="wrong_category"> Wrong expense category</label>
+                <label><input type="radio" name="reject-reason" value="duplicate"> Duplicate submission</label>
+                <label><input type="radio" name="reject-reason" value="not_valid"> Not a valid business expense</label>
+                <label><input type="radio" name="reject-reason" value="other"> Other: <input type="text"
+                        id="other-reason" class="border rounded"></label>
+            </div>
+            <label class="block mb-2">Additional Comments:</label>
+            <textarea id="reject-comment" class="w-full p-2 border rounded mb-4"></textarea>
+            <p class="text-sm text-gray-600 mb-4">Employee will be notified with your reason.</p>
+            <div class="flex justify-end gap-2">
+                <button id="cancel-reject" class="px-4 py-2 border rounded">Cancel</button>
+                <button id="confirm-reject" class="bg-danger text-white px-4 py-2 rounded">Confirm Rejection</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Switcher -->
+    <div class="fixed top-4 right-4 z-50">
+        <button id="switch-to-employee" class="bg-primary text-white px-4 py-2 rounded">Switch to Employee
+            Dashboard</button>
+        <button id="switch-to-manager" class="bg-primary text-white px-4 py-2 rounded hidden">Switch to Manager
+            Dashboard</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Global Data Management
+        function getData() {
+            return JSON.parse(localStorage.getItem('expenseFlowData')) || {
+                employees: [],
+                managers: [],
+                expenses: [],
+                notifications: []
+            };
+        }
+
+        function saveData(data) {
+            localStorage.setItem('expenseFlowData', JSON.stringify(data));
+        }
+
+        function addNotification(userId, message, type = 'info') {
+            const data = getData();
+            const notification = {
+                id: 'NOTIF_' + Date.now(),
+                userId,
+                message,
+                type,
+                timestamp: new Date().toISOString(),
+                read: false
+            };
+            data.notifications.push(notification);
+            saveData(data);
+            return notification;
+        }
+
+        // Dashboard Switcher
+        document.getElementById('switch-to-employee').addEventListener('click', () => {
+            document.getElementById('manager-dashboard').classList.add('hidden');
+            document.getElementById('employee-dashboard').classList.remove('hidden');
+            document.getElementById('switch-to-employee').classList.add('hidden');
+            document.getElementById('switch-to-manager').classList.remove('hidden');
+            // Initialize employee dashboard
+            updateEmployeeBudget();
+            renderEmployeeExpenses();
+            renderEmployeePending();
+            switchEmployeeTab('submit');
+        });
+
+        document.getElementById('switch-to-manager').addEventListener('click', () => {
+            document.getElementById('employee-dashboard').classList.add('hidden');
+            document.getElementById('manager-dashboard').classList.remove('hidden');
+            document.getElementById('switch-to-manager').classList.add('hidden');
+            document.getElementById('switch-to-employee').classList.remove('hidden');
+            // Initialize manager dashboard
+            renderManagerPending();
+            renderTeamExpenses();
+        });
+
+        // Manager Dashboard Functions
+        function renderManagerPending() {
+            const data = getData();
+            const pendingExpenses = data.expenses.filter(exp => exp.status === 'Pending');
+            const container = document.getElementById('approval-cards');
+            const countEl = document.getElementById('pending-count');
+            const urgentEl = document.getElementById('urgent-alert');
+            const urgentCount = document.getElementById('urgent-count');
+            const emptyState = document.getElementById('empty-state');
+            const pendingBadge = document.getElementById('pending-badge');
+
+            countEl.textContent = `${pendingExpenses.length} expenses awaiting your approval`;
+            pendingBadge.textContent = pendingExpenses.length;
+
+            if (pendingExpenses.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                urgentEl.classList.add('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            const urgentCountNum = pendingExpenses.filter(e => e.urgent).length;
+            if (urgentCountNum > 0) {
+                urgentEl.classList.remove('hidden');
+                urgentCount.textContent = urgentCountNum;
+            } else {
+                urgentEl.classList.add('hidden');
+            }
+
+            container.innerHTML = pendingExpenses.map(exp => {
+                const employee = data.employees.find(emp => emp.id === exp.employeeId);
+                return `
+                <div class="bg-white p-6 rounded-lg shadow-lg border ${exp.urgent ? 'border-danger' : ''}">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="font-bold text-lg ${exp.urgent ? 'text-danger' : ''}">
+                            ${exp.urgent ? '🔴 URGENT' : ''} ${exp.id}
+                        </h3>
+                        <input type="checkbox" class="select-expense" data-id="${exp.id}">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <p class="font-semibold flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-gray-300 mr-2 flex items-center justify-center text-xs">${employee.name.charAt(0)}</div>
+                                ${employee.name}
+                            </p>
+                            <p class="text-sm text-gray-600">${employee.department}</p>
+                            <p class="text-sm text-gray-600">${employee.email}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl font-bold">₹${exp.amount.toLocaleString()}</p>
+                            <p class="text-sm text-gray-600">${exp.currency}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <p class="font-semibold">📋 Details:</p>
+                        <p class="text-sm">Category: ${exp.category}</p>
+                        <p class="text-sm">Date: ${exp.date}</p>
+                        <p class="text-sm">"${exp.description}"</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <p class="font-semibold">📎 Receipt:</p>
+                        <button onclick="openReceipt('${exp.id}')" class="text-primary text-sm">[View Image 📷]</button>
+                        <button class="text-primary text-sm ml-2">[Download ↓]</button>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <p class="font-semibold">⏱️ Timeline:</p>
+                        <p class="text-sm">• Submitted: ${exp.submitted} (${exp.daysOld} days ago)</p>
+                        <p class="text-sm">• Current Stage: ${exp.stage}</p>
+                        <p class="text-sm">• Next Stage: ${exp.nextStage}</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <p class="font-semibold">📊 Employee History:</p>
+                        <p class="text-sm">• Total expenses this month: ${exp.history.total} (₹${exp.history.amount.toLocaleString()})</p>
+                        <p class="text-sm">• Average expense: ₹${exp.history.avg.toLocaleString()}</p>
+                        <p class="text-sm">• Approval rate: ${exp.history.rate}%</p>
+                        <p class="text-sm">• Last approved: ${exp.history.last}</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <p class="font-semibold">💬 Add Comment (Optional):</p>
+                        <textarea class="w-full p-2 border rounded" placeholder="Type your comment here..."></textarea>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <div class="flex gap-2">
+                            <button onclick="openApproveModal('${exp.id}', '${employee.name}', '${exp.amount}')" class="bg-success text-white px-6 py-2 rounded">✅ APPROVE</button>
+                            <button onclick="openRejectModal('${exp.id}', '${employee.name}', '${exp.amount}')" class="bg-danger text-white px-6 py-2 rounded">❌ REJECT</button>
+                        </div>
+                        <div class="dropdown relative">
+                            <button class="text-gray-600">⏩ Quick Actions ▼</button>
+                            <div class="dropdown-content hidden absolute right-0 bg-white shadow-lg rounded mt-2">
+                                <a href="#" class="block px-4 py-2 hover:bg-gray-100">Request more information</a>
+                                <a href="#" class="block px-4 py-2 hover:bg-gray-100">Escalate to senior manager</a>
+                                <a href="#" class="block px-4 py-2 hover:bg-gray-100">Flag for review</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function renderTeamExpenses() {
+            const data = getData();
+            const table = document.getElementById('team-expenses-table');
+            table.innerHTML = data.expenses.map(exp => {
+                const employee = data.employees.find(emp => emp.id === exp.employeeId);
+                return `
+                <tr class="hover:bg-gray-50">
+                    <td class="p-2 flex items-center">
+                        <div class="w-8 h-8 rounded-full bg-gray-300 mr-2 flex items-center justify-center text-xs">${employee.name.charAt(0)}</div>
+                        <div>
+                            <p class="font-semibold">${employee.name}</p>
+                            <p class="text-sm text-gray-600">${employee.department}</p>
+                        </div>
+                    </td>
+                    <td class="p-2">${exp.id}</td>
+                    <td class="p-2">₹${exp.amount.toLocaleString()}</td>
+                    <td class="p-2"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">${exp.category}</span></td>
+                    <td class="p-2">${exp.description}</td>
+                    <td class="p-2">${exp.date}</td>
+                    <td class="p-2">
+                        <span class="px-2 py-1 rounded text-xs ${exp.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                        exp.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                            'bg-red-100 text-red-800'
+                    }">${exp.status}</span>
+                    </td>
+                    <td class="p-2">${exp.stage}</td>
+                    <td class="p-2">
+                        <button class="text-primary text-sm">View</button>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        // Employee Dashboard Functions
+        function updateEmployeeBudget() {
+            const data = getData();
+            const employee = data.employees[0]; // Assuming first employee for demo
+            const usedBudget = data.expenses
+                .filter(exp => exp.employeeId === employee.id && exp.status !== 'Rejected')
+                .reduce((sum, exp) => sum + exp.amount, 0);
+
+            const percentage = (usedBudget / employee.budget * 100);
+            document.getElementById('budget-used').textContent = `₹${usedBudget.toLocaleString()}`;
+            document.getElementById('budget-bar').style.width = `${Math.min(percentage, 100)}%`;
+            document.getElementById('budget-bar').className = percentage < 70 ? 'bg-success h-2 rounded-full' : percentage < 90 ? 'bg-warning h-2 rounded-full' : 'bg-danger h-2 rounded-full';
+        }
+
+        function renderEmployeeExpenses() {
+            const data = getData();
+            const employee = data.employees[0]; // Assuming first employee for demo
+            const employeeExpenses = data.expenses.filter(exp => exp.employeeId === employee.id);
+            const container = document.getElementById('expenses-list');
+            const pendingCount = employeeExpenses.filter(e => e.status === 'Pending').length;
+            document.getElementById('employee-pending-badge').textContent = pendingCount;
+
+            container.innerHTML = employeeExpenses.map(exp => `
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="font-bold text-lg">${exp.id}</h3>
+                        <span class="px-2 py-1 rounded text-xs ${exp.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                    exp.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                        exp.status === 'Rejected' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+                }">${exp.status}</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <p class="font-semibold">₹${exp.amount.toLocaleString()}</p>
+                            <p class="text-sm text-gray-600">${exp.category}</p>
+                            <p class="text-sm">${exp.description}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm">Submitted: ${exp.submitted}</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="text-primary text-sm">View Details</button>
+                        <button class="text-primary text-sm">Track Status</button>
+                        <button class="text-primary text-sm">Edit</button>
+                        <button class="text-danger text-sm">Cancel</button>
+                    </div>
+                </div>
+            `).join('');
+
+            if (employeeExpenses.length === 0) {
+                container.innerHTML = '<div class="text-center py-12"><div class="text-6xl mb-4">📝</div><h3 class="text-xl font-semibold mb-2">No Expenses Yet</h3><p class="text-gray-600">You haven\'t submitted any expenses. Start by submitting your first one!</p><button class="text-primary">Submit First Expense →</button></div>';
+            }
+        }
+
+        function renderEmployeePending() {
+            const data = getData();
+            const employee = data.employees[0]; // Assuming first employee for demo
+            const pending = data.expenses.filter(exp => exp.employeeId === employee.id && exp.status === 'Pending');
+            const container = document.getElementById('pending-list');
+
+            if (pending.length === 0) {
+                container.innerHTML = '<div class="text-center py-12"><div class="text-6xl mb-4">🎉</div><h3 class="text-xl font-semibold mb-2">All Caught Up!</h3><p class="text-gray-600">You have no pending expenses. All your expenses are either approved, rejected, or paid.</p><button class="text-primary">Submit New Expense</button><button class="text-primary ml-2">View All Expenses</button></div>';
+                return;
+            }
+
+            container.innerHTML = pending.map(exp => `
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="font-bold text-lg">${exp.id}</h3>
+                        <span class="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">In Progress</span>
+                    </div>
+                    <p class="font-semibold mb-2">₹${exp.amount.toLocaleString()} ${exp.category}</p>
+                    <p class="text-sm mb-4">Submitted: ${exp.submitted}</p>
+                    <div class="bg-gray-100 p-4 rounded mb-4">
+                        <p class="font-semibold mb-2">CURRENT STATUS: Manager Review</p>
+                        <div class="space-y-2 text-sm">
+                            <p>Stage 1: You (Submitted) ✅</p>
+                            <p>Stage 2: Manager Review 🔵 CURRENT</p>
+                            <p class="text-warning">50% (In Progress)</p>
+                            <p>Reviewer: Suresh Kumar</p>
+                            <p>Status: 📧 Notified • Waiting for response</p>
+                            <p>Time in queue: 2 days 4 hours</p>
+                            <p>Avg approval time: 4 hours</p>
+                            <button class="text-primary text-xs">Send Gentle Reminder</button>
+                        </div>
+                    </div>
+                    <p class="text-sm mb-2">TIMELINE ESTIMATE:</p>
+                    <ul class="list-disc ml-4 text-sm space-y-1">
+                        <li>Current stage: 0.5-1 day remaining</li>
+                        <li>Finance team: 1 day</li>
+                        <li>Final approval: 0.5 day</li>
+                        <li>Total estimated: 2-2.5 days from now</li>
+                    </ul>
+                    <div class="flex gap-2 mt-4">
+                        <button class="text-primary text-sm">View Full Details</button>
+                        <button class="text-primary text-sm">Send Reminder</button>
+                        <button class="text-primary text-sm">Contact Manager</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Expense Submission
+        function submitExpense(amount, category, date, desc, method) {
+            const data = getData();
+            const employee = data.employees[0]; // Assuming first employee for demo
+
+            const newExpense = {
+                id: 'EXP_' + (data.expenses.length + 1).toString().padStart(3, '0'),
+                employeeId: employee.id,
+                amount: parseInt(amount),
+                category,
+                date,
+                description: desc,
+                status: 'Pending',
+                stage: 'Manager Review',
+                submitted: new Date().toLocaleString(),
+                method,
+                currency: 'INR',
+                daysOld: 0,
+                urgent: false,
+                history: { total: 1, amount: parseInt(amount), avg: parseInt(amount), rate: 0, last: 'Never' },
+                nextStage: 'Finance Team'
+            };
+
+            data.expenses.push(newExpense);
+            saveData(data);
+
+            // Add notification for manager
+            addNotification('MGR_001', `New expense ${newExpense.id} from ${employee.name} needs your approval`);
+
+            document.getElementById('success-id').textContent = newExpense.id;
+            document.getElementById('success-amount').textContent = `₹${amount}`;
+            document.getElementById('success-modal').classList.remove('hidden');
+
+            // Reset forms
+            if (method === 'Manual') {
+                document.getElementById('expense-form').reset();
+            } else {
+                document.getElementById('verify-step').classList.add('hidden');
+            }
+
+            updateEmployeeBudget();
+            renderEmployeeExpenses();
+            renderEmployeePending();
+        }
+
+        // Modal Functions
+        function openReceipt(id) {
+            document.getElementById('receipt-modal').classList.remove('hidden');
+            document.getElementById('receipt-image').src = 'https://via.placeholder.com/800x600?text=Receipt+' + id;
+        }
+
+        function closeReceipt() {
+            document.getElementById('receipt-modal').classList.add('hidden');
+        }
+
+        function openApproveModal(id, employee, amount) {
+            document.getElementById('approve-id').textContent = id;
+            document.getElementById('approve-employee').textContent = employee;
+            document.getElementById('approve-amount').textContent = '₹' + parseInt(amount).toLocaleString();
+            document.getElementById('approve-modal').classList.remove('hidden');
+        }
+
+        function openRejectModal(id, employee, amount) {
+            document.getElementById('reject-id').textContent = id;
+            document.getElementById('reject-employee').textContent = employee;
+            document.getElementById('reject-amount').textContent = '₹' + parseInt(amount).toLocaleString();
+            document.getElementById('reject-modal').classList.remove('hidden');
+        }
+
+        // Event Listeners
+        document.getElementById('close-receipt').addEventListener('click', closeReceipt);
+        document.getElementById('cancel-approve').addEventListener('click', () => {
+            document.getElementById('approve-modal').classList.add('hidden');
+        });
+        document.getElementById('cancel-reject').addEventListener('click', () => {
+            document.getElementById('reject-modal').classList.add('hidden');
+        });
+
+        document.getElementById('confirm-approve').addEventListener('click', () => {
+            const data = getData();
+            const expenseId = document.getElementById('approve-id').textContent;
+            const expense = data.expenses.find(exp => exp.id === expenseId);
+
+            if (expense) {
+                expense.status = 'Approved';
+                expense.approvedBy = 'Suresh Kumar';
+                expense.approvedAt = new Date().toLocaleString();
+                saveData(data);
+
+                // Add notification for employee
+                addNotification(expense.employeeId, `Your expense ${expenseId} has been approved by your manager`);
+
+                alert('Expense approved!');
+                document.getElementById('approve-modal').classList.add('hidden');
+                renderManagerPending();
+                renderTeamExpenses();
+            }
+        });
+
+        document.getElementById('confirm-reject').addEventListener('click', () => {
+            const data = getData();
+            const expenseId = document.getElementById('reject-id').textContent;
+            const expense = data.expenses.find(exp => exp.id === expenseId);
+
+            if (expense) {
+                expense.status = 'Rejected';
+                expense.rejectedBy = 'Suresh Kumar';
+                expense.rejectedAt = new Date().toLocaleString();
+                expense.rejectionReason = document.querySelector('input[name="reject-reason"]:checked')?.value || 'other';
+                saveData(data);
+
+                // Add notification for employee
+                addNotification(expense.employeeId, `Your expense ${expenseId} has been rejected by your manager`);
+
+                alert('Expense rejected!');
+                document.getElementById('reject-modal').classList.add('hidden');
+                renderManagerPending();
+                renderTeamExpenses();
+            }
+        });
+
+        // Employee Dashboard Methods
+        function showOcrMethod() {
+            document.getElementById('ocr-method').classList.remove('hidden');
+            document.getElementById('manual-method').classList.add('hidden');
+        }
+
+        function showManualMethod() {
+            document.getElementById('manual-method').classList.remove('hidden');
+            document.getElementById('ocr-method').classList.add('hidden');
+        }
+
+        function submitExpenseFromOcr() {
+            const amount = document.getElementById('auto-amount').value;
+            const category = document.getElementById('auto-category').value;
+            const date = document.getElementById('auto-date').value;
+            const desc = document.getElementById('auto-desc').value;
+            submitExpense(amount, category, date, desc, 'OCR');
+        }
+
+        function cancelSubmit() {
+            showOcrMethod(); // Default back to OCR
+        }
+
+        function trackStatus() {
+            document.getElementById('success-modal').classList.add('hidden');
+            switchEmployeeTab('pending');
+        }
+
+        function submitAnother() {
+            document.getElementById('success-modal').classList.add('hidden');
+            showOcrMethod();
+        }
+
+        function viewAll() {
+            document.getElementById('success-modal').classList.add('hidden');
+            switchEmployeeTab('expenses');
+        }
+
+        // Employee Tab Switching
+        function switchEmployeeTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+            document.getElementById(tab + '-tab').classList.remove('hidden');
+            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('bg-primary', 'text-white'));
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('bg-primary', 'text-white');
+            if (tab === 'expenses') renderEmployeeExpenses();
+            if (tab === 'pending') renderEmployeePending();
+        }
+
+        // Navigation Events
+        document.querySelectorAll('.sidebar-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tab = link.dataset.tab;
+
+                if (document.getElementById('employee-dashboard').classList.contains('hidden')) {
+                    // Manager dashboard
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+                    document.getElementById(tab + '-tab').classList.remove('hidden');
+                    document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('bg-primary', 'text-white'));
+                    link.classList.add('bg-primary', 'text-white');
+
+                    if (tab === 'pending') renderManagerPending();
+                    if (tab === 'team') renderTeamExpenses();
+                } else {
+                    // Employee dashboard
+                    switchEmployeeTab(tab);
+                }
+
+                document.getElementById('sidebar').classList.add('-translate-x-full');
+                document.getElementById('employee-sidebar').classList.add('-translate-x-full');
+            });
+        });
+
+        // Mobile Toggles
+        document.getElementById('mobile-menu-toggle').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('-translate-x-full');
+        });
+
+        document.getElementById('toggle-sidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('-translate-x-full');
+        });
+
+        document.getElementById('employee-mobile-menu-toggle').addEventListener('click', () => {
+            document.getElementById('employee-sidebar').classList.toggle('-translate-x-full');
+        });
+
+        // Manual Form Submit
+        document.getElementById('expense-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const amount = document.getElementById('manual-amount').value;
+            const category = document.getElementById('manual-category').value;
+            const date = document.getElementById('manual-date').value;
+            const desc = document.getElementById('manual-desc').value;
+            submitExpense(amount, category, date, desc, 'Manual');
+        });
+
+        // OCR Simulation
+        document.getElementById('receipt-upload').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('receipt-preview').classList.remove('hidden');
+                    document.getElementById('preview-img').src = e.target.result;
+                    // Simulate processing
+                    document.getElementById('ocr-method').querySelector('div').classList.add('hidden');
+                    document.getElementById('processing-step').classList.remove('hidden');
+                    setTimeout(() => {
+                        document.getElementById('processing-step').classList.add('hidden');
+                        document.getElementById('verify-step').classList.remove('hidden');
+                        document.getElementById('verify-img').src = e.target.result;
+                    }, 3000);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize manager dashboard by default
+            renderManagerPending();
+            renderTeamExpenses();
+        });
+    </script>
+</body>
+
+</html>
